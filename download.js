@@ -1,55 +1,85 @@
 // ==UserScript==
 // @name         YouTube Video Downloader
-// @namespace    http://tampermonkey.net/
-// @version      0.2
-// @description  Adds a download button to YouTube videos
+// @namespace    http://your.namespace.here
+// @version      0.1
+// @description  Adds a download button to download your YouTube video and shows a notification
 // @author       You
-// @match        https://www.youtube.com/watch?v=*
+// @match        *://www.youtube.com/*
 // @grant        none
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    // Function to add the download button
-    function addDownloadButton() {
-        // Check if the button already exists
-        if (document.querySelector('#downloadButton')) return;
+    // Function to show a notification
+    function showNotification(message) {
+        const notification = document.createElement('div');
+        notification.innerText = message;
+        notification.style.position = 'fixed';
+        notification.style.bottom = '20px';
+        notification.style.right = '20px';
+        notification.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        notification.style.color = 'white';
+        notification.style.padding = '10px';
+        notification.style.borderRadius = '5px';
+        notification.style.zIndex = '9999';
+        notification.style.fontSize = '14px';
+        notification.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
 
-        // Create a download button
-        let downloadButton = document.createElement('button');
-        downloadButton.id = 'downloadButton';
-        downloadButton.innerHTML = 'Download Video';
-        
-        // Style the button
-        downloadButton.style.position = 'fixed';
-        downloadButton.style.top = '10px';
-        downloadButton.style.right = '10px';
-        downloadButton.style.padding = '10px 20px';
-        downloadButton.style.backgroundColor = '#ff0000';
-        downloadButton.style.color = '#ffffff';
-        downloadButton.style.border = 'none';
-        downloadButton.style.borderRadius = '5px';
-        downloadButton.style.cursor = 'pointer';
-        downloadButton.style.zIndex = '1000';
-        downloadButton.style.fontSize = '16px';
-        downloadButton.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+        document.body.appendChild(notification);
 
-        // Append the button to the body
-        document.body.appendChild(downloadButton);
-
-        // Add click event to the button
-        downloadButton.addEventListener('click', function() {
-            let video = document.querySelector('video');
-            if (video) {
-                let videoUrl = video.src;
-                window.open(videoUrl, '_blank');
-            } else {
-                alert('Video element not found!');
-            }
-        });
+        // Remove notification after 5 seconds
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 5000);
     }
 
-    // Wait for the page to load
-    window.addEventListener('load', addDownloadButton, false);
+    // Function to download the video
+    function downloadVideo() {
+        const videoElement = document.querySelector('video');
+
+        if (videoElement) {
+            const videoUrl = videoElement.src;
+            const a = document.createElement('a');
+            a.href = videoUrl;
+            a.download = ''; // You can set a filename here if desired
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // Show notification after starting download
+            showNotification('Your video is downloading...');
+        } else {
+            console.error('Could not find video URL!');
+            showNotification('Could not find video URL!');
+        }
+    }
+
+    // Function to add download button
+    function addDownloadButton() {
+        const buttonContainer = document.querySelector('.title.style-scope.ytd-video-primary-info-renderer');
+
+        if (buttonContainer && !document.getElementById('download-button')) {
+            const downloadButton = document.createElement('button');
+            downloadButton.innerText = 'Download Video';
+            downloadButton.id = 'download-button';
+            downloadButton.style.marginLeft = '10px';
+            downloadButton.style.cursor = 'pointer';
+            downloadButton.style.padding = '5px 10px';
+            downloadButton.style.backgroundColor = '#ff0000'; // Red background
+            downloadButton.style.color = 'white'; // White text
+            downloadButton.style.border = 'none';
+            downloadButton.style.borderRadius = '5px';
+            downloadButton.style.fontSize = '14px';
+            downloadButton.style.zIndex = '9999';
+
+            downloadButton.onclick = downloadVideo;
+
+            buttonContainer.appendChild(downloadButton);
+        }
+    }
+
+    // Observe changes to the DOM to add the button when the video loads
+    const observer = new MutationObserver(addDownloadButton);
+    observer.observe(document.body, { childList: true, subtree: true });
 })();
